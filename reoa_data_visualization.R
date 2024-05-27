@@ -23,6 +23,8 @@ library(NbClust)
 library(factoextra)
 library(readr)
 library(UniProt.ws)
+library(ggpattern)
+library(ggnewscale)
 
 #### Data importation
 # raw_data - this will be an expression matrix
@@ -259,7 +261,10 @@ iDEA_to_plot2$combined <- factor(paste(iDEA_to_plot2$condition,
                                                        iDEA_to_plot2$Gene.names, 
                                                        iDEA_to_plot2$sample_type, sep = "_")))
 
+iDEA_to_plot2 <- iDEA_to_plot2 %>% 
+  mutate(Stripe = ifelse(condition == "Non-stablepair","stripe","none"))
 
+# old plot Model
 REOA_bars2 <- ggplot(iDEA_to_plot2, aes(y=MED, x=combined))+
   scale_x_discrete(limits = levels(iDEA_to_plot2$combined),
                    labels = iDEA_to_plot2$Gene.names)+
@@ -277,6 +282,28 @@ REOA_bars2 <- ggplot(iDEA_to_plot2, aes(y=MED, x=combined))+
   guides(size = "none")
 
 REOA_bars2
+
+REOA_bars2 <- ggplot(iDEA_to_plot2, aes(y=MED, x=combined))+
+  scale_x_discrete(limits = levels(iDEA_to_plot2$combined),
+                   labels = iDEA_to_plot2$Gene.names)+
+  geom_bar(mapping = aes(fill = sample_type, color = condition), 
+           position="dodge", stat="identity", linewidth = 1)+
+  scale_fill_manual(values = types_of_samples)+
+  scale_color_manual(values = dynamics_)+
+  geom_bar_pattern(fill = "white",alpha = 0, aes(pattern = Stripe, color = condition),
+                   position = "dodge", stat = "identity",linewidth=1)+
+  scale_pattern_identity()+
+  theme_minimal() +
+  labs(title = "REOA results",
+       x = "Protein")+
+  theme(axis.title = element_text(size = 12),
+        axis.text = element_text(),
+        axis.ticks = element_blank(),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  guides(size = "none")
+
+REOA_bars2
+
 
 ## Dataset to check 
 # Get info of the paths with the most genes for the up and down proteins 
@@ -321,13 +348,20 @@ iDEA_to_plot3$combined <- factor(paste(iDEA_to_plot3$condition,
                                                        iDEA_to_plot3$sample_type, sep = "_")))
 
 
+iDEA_to_plot3 <- iDEA_to_plot3 %>% 
+  mutate(Stripe = ifelse(condition == "Non-stablepair","stripe","none"))
+
+
 REOA_bars3 <- ggplot(iDEA_to_plot3, aes(y=MED, x=combined))+
   scale_x_discrete(limits = levels(iDEA_to_plot3$combined),
                    labels = iDEA_to_plot3$Gene.names)+
   geom_bar(mapping = aes(fill = sample_type, color = condition), 
-           position="dodge", stat="identity")+
+           position="dodge", stat="identity", linewidth = 1)+
   scale_fill_manual(values = types_of_samples)+
   scale_color_manual(values = dynamics_)+
+  geom_bar_pattern(fill = "white",alpha = 0, aes(pattern = Stripe, color = condition),
+                   position = "dodge", stat = "identity",linewidth=1)+
+  scale_pattern_identity()+
   theme_minimal() +
   labs(title = "REOA results",
        x = "Protein")+
@@ -338,6 +372,7 @@ REOA_bars3 <- ggplot(iDEA_to_plot3, aes(y=MED, x=combined))+
   guides(size = "none")
 
 REOA_bars3
+
 
 ## Complement prots
 # Get info of the genes of a path 
@@ -373,14 +408,20 @@ iDEA_to_plot4$combined <- factor(paste(iDEA_to_plot4$condition,
                                                        iDEA_to_plot4$Gene.names, 
                                                        iDEA_to_plot4$sample_type, sep = "_")))
 
+iDEA_to_plot4 <- iDEA_to_plot4 %>% 
+  mutate(Stripe = ifelse(condition == "Non-stablepair","stripe","none"))
+
 
 REOA_bars4 <- ggplot(iDEA_to_plot4, aes(y=MED, x=combined))+
   scale_x_discrete(limits = levels(iDEA_to_plot4$combined),
                    labels = iDEA_to_plot4$Gene.names)+
-  geom_bar(mapping = aes(fill = sample_type, color = condition), 
-           position="dodge", stat="identity")+
+    geom_bar(mapping = aes(fill = sample_type, color = condition), 
+             position="dodge", stat="identity", linewidth = 1)+
   scale_fill_manual(values = types_of_samples)+
   scale_color_manual(values = dynamics_)+
+  geom_bar_pattern(fill = "white",alpha = 0, aes(pattern = Stripe, color = condition),
+                   position = "dodge", stat = "identity",linewidth=1)+
+  scale_pattern_identity()+
   theme_minimal() +
   labs(title = "REOA results",
        x = "Protein")+
@@ -389,7 +430,7 @@ REOA_bars4 <- ggplot(iDEA_to_plot4, aes(y=MED, x=combined))+
         axis.ticks = element_blank(),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
   guides(size = "none")
-
+  
 REOA_bars4
 
 
