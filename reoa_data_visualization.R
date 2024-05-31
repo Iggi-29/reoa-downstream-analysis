@@ -47,6 +47,23 @@ expression_matrix_reoa <- expression_mat[,-c(23,51), drop = F]
 annotation <- openxlsx::read.xlsx("./raw_data/raw_data_ITACAT.xlsx")
 annotation <- annotation[,c(1:3)]
 
+### Uniprot.ws work
+annotation <- annotation %>%
+  group_by(Accession) %>% 
+  mutate(Accession_1 = unlist(strsplit(Accession, split = "\\;"),use.names = F)[1]) %>% 
+  ungroup() %>% 
+  relocate(Accession_1, .after = Accession)
+
+annotation_uniP <- UniProt.ws::mapUniProt("UniProtKB_AC-ID", "UniProtKB", 
+                                          query = annotation$Accession_1)
+annotation <- annotation %>% 
+  group_by(Accession) %>% 
+  mutate(Gene.names = ifelse(is.na(Gene.names),
+                             annotation_uniP$Gene.Names[match(Accession_1, annotation_uniP$From)],
+                             Gene.names)) %>% 
+  mutate(Gene.names = gsub(x =Gene.names, pattern = " ", replacement = ";")) %>% 
+  subset(select = -c(Accession_1))
+
 #### Import REOA data
 ## !! ALWAYS SUM+1 as in reoa 0 means "first row" and in R, this information would be 1
 ## Stable pairs
@@ -281,8 +298,6 @@ REOA_bars2 <- ggplot(iDEA_to_plot2, aes(y=MED, x=combined))+
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
   guides(size = "none")
 
-REOA_bars2
-
 REOA_bars2 <- ggplot(iDEA_to_plot2, aes(y=MED, x=combined))+
   scale_x_discrete(limits = levels(iDEA_to_plot2$combined),
                    labels = iDEA_to_plot2$Gene.names)+
@@ -432,5 +447,48 @@ REOA_bars4 <- ggplot(iDEA_to_plot4, aes(y=MED, x=combined))+
   guides(size = "none")
   
 REOA_bars4
+
+
+
+#### IDEA - Volcano plot
+### Create the data
+iDEA_to_plot5 <- iDEA_to_plot 
+
+## Remove 'Problem Control' samples and Non-stable and Non-Dysregulated proteins
+iDEA_to_plot5 <- iDEA_to_plot5 %>%
+  mutate(condition = as.character(condition)) %>% 
+  mutate(sample_type = as.character(sample_type)) %>% 
+  mutate(Gene.names = as.character(Gene.names)) %>% 
+  filter(sample_type != "Problem Control") %>% 
+  filter(!condition %in% c("Non-stablepair","Non-Dysregulated")) 
+
+
+## Get the Fold change between the cohort and the 'Problem Ill' protein
+wide_idea_to_plot5 <- iDEA_to_plot5 %>% 
+  tidyr::spread(sample_type, MED)
+
+wide_idea_to_plot5 <- wide_idea_to_plot5 %>% 
+  subset(select = c(Gene.names,`Control Cohort`,`Problem Ill`)) %>% 
+  group_by(Gene.names) %>% 
+  mutate(`Control Cohort` = min(`Control Cohort`, na.rm = T)) %>% 
+  mutate(`Problem Ill` = min(`Problem Ill`, na.rm = T)) %>% 
+  ungroup() %>% 
+  distinct() %>% 
+  mutate(logFC = `Problem Ill` - `Control Cohort`)
+
+iDEA_to_plot5 <- iDEA_to_plot5 %>% 
+  mutate(Ill_vs_Cohort = wide_idea_to_plot5$logFC[match(Gene.names,
+                                                wide_idea_to_plot5$Gene.names)]) %>% 
+  subset(select = c(Accession,Protein.names,Gene.names,Gene.names_1,REOA_pval,Ill_vs_Cohort)) %>% 
+  distinct()
+
+  
+
+  
+
+
+
+
+
 
 
