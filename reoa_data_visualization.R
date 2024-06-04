@@ -27,7 +27,7 @@ library(ggpattern)
 library(ggnewscale)
 
 #### Data importation
-# raw_data - this will be an expression matrix
+## raw_data - this will be an expression matrix
 raw_data <- read_csv("./raw_data/ITACAT_imp50_t.csv", col_names = TRUE)
 
 # exp matrix - remove unwanted columns
@@ -35,7 +35,9 @@ expression_mat <- as.data.frame(t(raw_data[-c(1:12)]))
 colnames(expression_mat) <- raw_data$Accession
 boxplot(expression_mat)
 
-#### Extract the data that has already been processed by reoa, in the future source another R script to do this 
+#### Recreation of the sets that REOA has processed 
+# Extract the data that has already been processed by reoa, 
+# in the future source another R script to do this 
 ## problem - ill sample
 expression_matrix_C110 <- expression_mat[,c("C110"), drop = F]
 ## problem - control sample
@@ -207,6 +209,7 @@ iDEA_genes <- iDEA_to_plot %>%
   arrange(condition,REOA_pval)
 genes <- iDEA_genes$Gene.names
 
+#### Information for the plots
 # Set the order
 iDEA_to_plot <- iDEA_to_plot %>%
   mutate(condition = factor(condition, levels = c("Downregulated","Non-stablepair","Non-Dysregulated","Upregulated"))) %>%
@@ -214,14 +217,14 @@ iDEA_to_plot <- iDEA_to_plot %>%
   mutate(Gene.names = factor(Gene.names, levels = c(genes))) %>% 
   arrange(condition,sample_type,Gene.names)
 
-# Create a new combined factor column
+# Create a new combined factor column to ensure the good ordering of the data
 iDEA_to_plot$combined <- factor(paste(iDEA_to_plot$condition, 
                                       iDEA_to_plot$Gene.names, 
                                       iDEA_to_plot$sample_type, sep = "_"), 
                                 levels = unique(paste(iDEA_to_plot$condition, 
                                                       iDEA_to_plot$Gene.names, 
                                                       iDEA_to_plot$sample_type, sep = "_")))
-### Set colors for the graphs
+# Set colors for the graphs
 types_of_samples <- c("Control Cohort" = "gray",
                       "Problem Control" = "purple",
                       "Problem Ill" = "yellow")
@@ -230,7 +233,8 @@ dynamics_ <- c("Downregulated" = "red",
                "Non-Dysregulated" = "black",
                "Non-stablepair" = "darkgreen")
 
-### Barplot-most basic
+#### Graphs
+### General Barplot
 REOA_bars <- ggplot(iDEA_to_plot, aes(y=MED, x=combined))+
   scale_x_discrete(limits = levels(iDEA_to_plot$combined),
                    labels = iDEA_to_plot$Gene.names)+
@@ -247,17 +251,14 @@ REOA_bars <- ggplot(iDEA_to_plot, aes(y=MED, x=combined))+
   guides(size = "none")
 REOA_bars
 
-## Dataset to check 
+### Do a barplot for the top 5 up and downregulated proteins 
 # Get best up and downregulated prots to check 
 up_to_check <- REOs_up$Protein[order(REOs_up$FDR)[1:5]]
 down_to_check <- REOs_down$Protein[order(REOs_down$FDR)[1:5]]
 
+## Get the data
 iDEA_to_plot2 <- iDEA_to_plot %>% 
-  ##dplyr::filter(condition != "Non-Dysregulated") %>% 
-  #dplyr::filter(number %in% c(12,239,20,36)) %>%  ## UP!!
-  #dplyr::filter(number %in% c(160,53,70,98)) %>%  ## DOWN !!
   dplyr::filter(number %in% c(up_to_check,down_to_check))
-#dplyr::filter(number %in% c(235))
 
 iDEA_to_plot2 <- iDEA_to_plot2 %>%
   mutate(condition = as.character(condition)) %>% 
@@ -270,14 +271,12 @@ iDEA_to_plot2 <- iDEA_to_plot2 %>%
   mutate(Gene.names = factor(Gene.names, levels = c(genes))) %>% 
   arrange(condition,Gene.names,sample_type)
 
-# Create a new combined factor column
 iDEA_to_plot2$combined <- factor(paste(iDEA_to_plot2$condition, 
                                        iDEA_to_plot2$Gene.names, 
                                        iDEA_to_plot2$sample_type, sep = "_"), 
                                  levels = unique(paste(iDEA_to_plot2$condition, 
                                                        iDEA_to_plot2$Gene.names, 
                                                        iDEA_to_plot2$sample_type, sep = "_")))
-
 iDEA_to_plot2 <- iDEA_to_plot2 %>% 
   mutate(Stripe = ifelse(condition == "Non-stablepair","stripe","none"))
 
@@ -298,6 +297,7 @@ REOA_bars2 <- ggplot(iDEA_to_plot2, aes(y=MED, x=combined))+
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
   guides(size = "none")
 
+## Barplot
 REOA_bars2 <- ggplot(iDEA_to_plot2, aes(y=MED, x=combined))+
   scale_x_discrete(limits = levels(iDEA_to_plot2$combined),
                    labels = iDEA_to_plot2$Gene.names)+
@@ -309,7 +309,7 @@ REOA_bars2 <- ggplot(iDEA_to_plot2, aes(y=MED, x=combined))+
                    position = "dodge", stat = "identity",linewidth=1)+
   scale_pattern_identity()+
   theme_minimal() +
-  labs(title = "REOA results",
+  labs(title = "REOA results\nTop5 Up and Down proteins",
        x = "Protein")+
   theme(axis.title = element_text(size = 12),
         axis.text = element_text(),
@@ -320,8 +320,8 @@ REOA_bars2 <- ggplot(iDEA_to_plot2, aes(y=MED, x=combined))+
 REOA_bars2
 
 
-## Dataset to check 
-# Get info of the paths with the most genes for the up and down proteins 
+### Do a barplot to an upregulated pathway  
+# Het the data
 up_to_check <- openxlsx::read.xlsx("./results/BP_C110_E72_UP_pval001.xlsx")
 up_to_check <- up_to_check %>% 
   arrange(desc(Count)) %>% 
@@ -329,19 +329,9 @@ up_to_check <- up_to_check %>%
 up_to_check <- up_to_check$geneID
 up_to_check <- unlist(strsplit(up_to_check, split = "\\/"), use.names = F)
 
-##down_to_check <- openxlsx::read.xlsx("./results/BP_C110_E72_DOWN_pval001.xlsx")
-##down_to_check <- down_to_check %>% 
-##  arrange(desc(Count)) %>% 
-##  slice_head(n = 1)
-##down_to_check <- down_to_check$geneID
-##down_to_check <- unlist(strsplit(down_to_check, split = "\\/"), use.names = F)[1:20]
-
+## Get the data
 iDEA_to_plot3 <- iDEA_to_plot %>% 
-  ##dplyr::filter(condition != "Non-Dysregulated") %>% 
-  #dplyr::filter(number %in% c(12,239,20,36)) %>%  ## UP!!
-  #dplyr::filter(number %in% c(160,53,70,98)) %>%  ## DOWN !!
   dplyr::filter(Gene.names_1 %in% c(up_to_check))
-#dplyr::filter(number %in% c(235))
 
 iDEA_to_plot3 <- iDEA_to_plot3 %>%
   mutate(condition = as.character(condition)) %>% 
@@ -354,7 +344,6 @@ iDEA_to_plot3 <- iDEA_to_plot3 %>%
   mutate(Gene.names = factor(Gene.names, levels = c(genes))) %>% 
   arrange(condition,sample_type,Gene.names)
 
-# Create a new combined factor column
 iDEA_to_plot3$combined <- factor(paste(iDEA_to_plot3$condition, 
                                        iDEA_to_plot3$Gene.names, 
                                        iDEA_to_plot3$sample_type, sep = "_"), 
@@ -362,11 +351,10 @@ iDEA_to_plot3$combined <- factor(paste(iDEA_to_plot3$condition,
                                                        iDEA_to_plot3$Gene.names, 
                                                        iDEA_to_plot3$sample_type, sep = "_")))
 
-
 iDEA_to_plot3 <- iDEA_to_plot3 %>% 
   mutate(Stripe = ifelse(condition == "Non-stablepair","stripe","none"))
 
-
+## Barplot
 REOA_bars3 <- ggplot(iDEA_to_plot3, aes(y=MED, x=combined))+
   scale_x_discrete(limits = levels(iDEA_to_plot3$combined),
                    labels = iDEA_to_plot3$Gene.names)+
@@ -378,7 +366,7 @@ REOA_bars3 <- ggplot(iDEA_to_plot3, aes(y=MED, x=combined))+
                    position = "dodge", stat = "identity",linewidth=1)+
   scale_pattern_identity()+
   theme_minimal() +
-  labs(title = "REOA results",
+  labs(title = "REOA results\nTo an upregulated pathway",
        x = "Protein")+
   theme(axis.title = element_text(size = 12),
         axis.text = element_text(),
@@ -398,11 +386,7 @@ up_to_check <- up_to_check$geneID
 up_to_check <- unlist(strsplit(up_to_check, split = "\\/"), use.names = F)
 
 iDEA_to_plot4 <- iDEA_to_plot %>% 
-  ###dplyr::filter(condition != "Non-Dysregulated") %>% 
-  #dplyr::filter(number %in% c(12,239,20,36)) %>%  ## UP!!
-  #dplyr::filter(number %in% c(160,53,70,98)) %>%  ## DOWN !!
   dplyr::filter(Gene.names_1 %in% c(up_to_check))
-#dplyr::filter(number %in% c(235))
 
 iDEA_to_plot4 <- iDEA_to_plot4 %>%
   mutate(condition = as.character(condition)) %>% 
@@ -438,7 +422,7 @@ REOA_bars4 <- ggplot(iDEA_to_plot4, aes(y=MED, x=combined))+
                    position = "dodge", stat = "identity",linewidth=1)+
   scale_pattern_identity()+
   theme_minimal() +
-  labs(title = "REOA results",
+  labs(title = "REOA results\nWith a 'randomly' selected pathway",
        x = "Protein")+
   theme(axis.title = element_text(size = 12),
         axis.text = element_text(),
@@ -447,8 +431,6 @@ REOA_bars4 <- ggplot(iDEA_to_plot4, aes(y=MED, x=combined))+
   guides(size = "none")
   
 REOA_bars4
-
-
 
 #### IDEA - Volcano plot
 ### Create the data
