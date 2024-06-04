@@ -233,7 +233,7 @@ dynamics_ <- c("Downregulated" = "red",
                "Non-Dysregulated" = "black",
                "Non-stablepair" = "darkgreen")
 
-#### Graphs
+#### Barplots
 ### General Barplot
 REOA_bars <- ggplot(iDEA_to_plot, aes(y=MED, x=combined))+
   scale_x_discrete(limits = levels(iDEA_to_plot$combined),
@@ -252,7 +252,7 @@ REOA_bars <- ggplot(iDEA_to_plot, aes(y=MED, x=combined))+
 REOA_bars
 
 ### Do a barplot for the top 5 up and downregulated proteins 
-# Get best up and downregulated prots to check 
+# Get the genes
 up_to_check <- REOs_up$Protein[order(REOs_up$FDR)[1:5]]
 down_to_check <- REOs_down$Protein[order(REOs_down$FDR)[1:5]]
 
@@ -321,7 +321,7 @@ REOA_bars2
 
 
 ### Do a barplot to an upregulated pathway  
-# Het the data
+# Get the genes
 up_to_check <- openxlsx::read.xlsx("./results/BP_C110_E72_UP_pval001.xlsx")
 up_to_check <- up_to_check %>% 
   arrange(desc(Count)) %>% 
@@ -377,14 +377,15 @@ REOA_bars3 <- ggplot(iDEA_to_plot3, aes(y=MED, x=combined))+
 REOA_bars3
 
 
-## Complement prots
-# Get info of the genes of a path 
+### Do a barplot to a randomly selected pathway
+# Get the genes
 up_to_check <- openxlsx::read.xlsx("./results/BP_C110_E72_UP.xlsx")
 up_to_check <- up_to_check %>%
   filter(Description == "complement activation, classical pathway")
 up_to_check <- up_to_check$geneID
 up_to_check <- unlist(strsplit(up_to_check, split = "\\/"), use.names = F)
 
+## Get the data
 iDEA_to_plot4 <- iDEA_to_plot %>% 
   dplyr::filter(Gene.names_1 %in% c(up_to_check))
 
@@ -399,7 +400,6 @@ iDEA_to_plot4 <- iDEA_to_plot4 %>%
   mutate(Gene.names = factor(Gene.names, levels = c(genes))) %>% 
   arrange(condition,sample_type,Gene.names)
 
-# Create a new combined factor column
 iDEA_to_plot4$combined <- factor(paste(iDEA_to_plot4$condition, 
                                        iDEA_to_plot4$Gene.names, 
                                        iDEA_to_plot4$sample_type, sep = "_"), 
@@ -410,7 +410,7 @@ iDEA_to_plot4$combined <- factor(paste(iDEA_to_plot4$condition,
 iDEA_to_plot4 <- iDEA_to_plot4 %>% 
   mutate(Stripe = ifelse(condition == "Non-stablepair","stripe","none"))
 
-
+## Barplot
 REOA_bars4 <- ggplot(iDEA_to_plot4, aes(y=MED, x=combined))+
   scale_x_discrete(limits = levels(iDEA_to_plot4$combined),
                    labels = iDEA_to_plot4$Gene.names)+
@@ -432,11 +432,11 @@ REOA_bars4 <- ggplot(iDEA_to_plot4, aes(y=MED, x=combined))+
   
 REOA_bars4
 
-#### IDEA - Volcano plot
-### Create the data
+#### Volcano plot
+## Get the data
 iDEA_to_plot5 <- iDEA_to_plot 
 
-## Remove 'Problem Control' samples and Non-stable and Non-Dysregulated proteins
+# Remove 'Problem Control' samples and Non-stable and Non-Dysregulated proteins
 iDEA_to_plot5 <- iDEA_to_plot5 %>%
   mutate(condition = as.character(condition)) %>% 
   mutate(sample_type = as.character(sample_type)) %>% 
@@ -444,8 +444,7 @@ iDEA_to_plot5 <- iDEA_to_plot5 %>%
   filter(sample_type != "Problem Control") %>% 
   filter(!condition %in% c("Non-stablepair","Non-Dysregulated")) 
 
-
-## Get the Fold change between the cohort and the 'Problem Ill' protein
+# Get the Fold change between the cohort and the 'Problem Ill' protein
 wide_idea_to_plot5 <- iDEA_to_plot5 %>% 
   tidyr::spread(sample_type, MED)
 
@@ -464,11 +463,97 @@ iDEA_to_plot5 <- iDEA_to_plot5 %>%
   subset(select = c(Accession,Protein.names,Gene.names,Gene.names_1,REOA_pval,Ill_vs_Cohort)) %>% 
   distinct()
 
+# The 0 PValues
+pval_no_0 <- sort(unique(iDEA_to_plot5$REOA_pval))[2] 
+
+iDEA_to_plot5 <- iDEA_to_plot5 %>% 
+  mutate(REOA_pval = ifelse(REOA_pval == 0,pval_no_0,
+                            REOA_pval))
+
+### Volcano plot
+# data manipulation
+raw_data <- raw_data %>% 
+  filter(!is.na(Gene.names)) %>% 
+  filter(!is.na(Protein.names))
+
+raw_data$fold_change <- ifelse(test = raw_data$logFC > 0, 
+                               yes = 2^raw_data$logFC,
+                               no = (-1/2^raw_data$logFC))
+raw_data <- relocate(.data = raw_data, fold_change, .after = logFC)
+raw_data$fold_change <- raw_data$fold_change*-1
+raw_data$logFC <- raw_data$logFC*-1
+
+raw_data <- raw_data %>% 
+  mutate(gene_type = ifelse(fold_change >= 0.3785116 & adj.P.Val <= 0.05, "Enriched in G1",
+                            ifelse(fold_change <= -0.3785116 & adj.P.Val <= 0.05,"Enriched in G2","non-enriched")))
+
+# Define some variables
+cols <- c("Enriched in G2" = "#ff00ff", "Enriched in G1" = "#ffff00", "non-enriched" = "grey")
+
+
+# plotting
+vl_plot <- ggplot(data = raw_data,
+                  aes(x = logFC, y = -log10(adj.P.Val), label = Gene.names))+ 
+  geom_point(aes(x = logFC, y = -log10(adj.P.Val),
+                 colour = (gene_type),
+                 size = GRAN))+
+  scale_colour_manual(values = cols)+
+  scale_size_manual(values = c(6,10))+
+  geom_point(data = raw_data[raw_data$GRAN == "SI",],
+             pch=21, fill=NA, size=10, colour="black", stroke = 2.5)+
   
-
+  geom_text_repel(data = . %>% 
+                    filter(raw_data$GRAN %in% c("SI")) %>%
+                    filter(logFC > 0) %>% 
+                    filter(!Gene.names %in% c("HBB","RDH11","HBA1","P2RX1","STXBP3","GNAQ",
+                                              "UBASH3B","GSTO1","ILK","TXN","PRDX1","GNA13")),
+                  nudge_x = 0.50, 
+                  nudge_y = .1,
+                  segment.curvature = -0.1,
+                  segment.ncp = 3,
+                  segment.angle = 2)+
   
-
-
+  geom_text_repel(data = . %>% 
+                    filter(raw_data$GRAN %in% c("SI")) %>%
+                    filter(logFC > 0) %>% 
+                    filter(Gene.names %in% c("HBB","RDH11","HBA1","P2RX1","STXBP3","GNAQ",
+                                             "UBASH3B","GSTO1","ILK","TXN","PRDX1","GNA13")),
+                  nudge_x = -0.50, 
+                  nudge_y = .1,
+                  segment.curvature = -0.1,
+                  segment.ncp = 3,
+                  segment.angle = 2)+
+  
+  geom_text_repel(data = . %>% 
+                    filter(raw_data$GRAN %in% c("SI")) %>% 
+                    filter(logFC < 0), 
+                  nudge_x = -1, 
+                  nudge_y = 0,
+                  segment.ncp = 3,
+                  segment.angle = 2)+
+  
+  ####  geom_text_repel(data = . %>% 
+  ####                    filter(raw_data$GRAN %in% c("SI")) %>%
+  ####                    filter(logFC > 0) %>%
+  ####                    filter(Gene.names %in% c("HBB","TXNDC17","UBE2V2"), .preserve = T),
+  ####                  nudge_x = 1, 
+  ####                  nudge_y = 0.2,
+  ####                  segment.ncp = 3,
+  ####                  segment.angle = 2)+
+  
+  
+geom_hline(yintercept = -log10(0.05), linetype = "dashed")+
+  geom_vline(xintercept = c(0.3785116, -0.3785116), linetype = "dashed")+
+  scale_x_continuous(breaks = seq(-4,4,2),
+                     limits = c(-4,4))+
+  theme_bw()+
+  theme(legend.position = "top",
+        legend.title = element_blank(),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 12),
+        legend.text = element_text(size = 12))+
+  xlab("G1 vs. G2 (LogFC)")
+vl_plot
 
 
 
