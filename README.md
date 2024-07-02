@@ -1,4 +1,8 @@
 # reoa Downstream Analysis
+## Credits
+All the information in this README reffering to the execution of REOA can be found here:
+https://github.com/pathint/reoa. All the credits must go to https://github.com/pathint the person/s who invented the approach and that have helped me and colegues to understand their application when it has been necessary.
+
 ## REOA cheatcode
 1. Stable pairs calculation
     * reoa -j 0 1 599 -v expression_matrix_cohort.dat 6 1
