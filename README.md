@@ -7,6 +7,28 @@
 2. Differentail expression analysis
     * bash onecomp -a 0 -m 0 -f 0.05 -v stable_pairs_0.dat expression_matrix_problem_control.dat expression_matrix_problem_illness.dat
     * bash cellcomp -a 0 -f 0.05 -v expression_matrix_problem_control.dat expression_matrix_problem_illness.dat
+### Arguments
+#### reoa, stable pairs calculation
+-j 0: type of job to do the reoa, 0 for the stable-pairs calculations \
+number of files for the stable_pairs calculation \
+number of proteins/genes/CpGs to test \
+-v: verbose results (add number of exceptions and pvalue) \
+expression matrix for the cohort \
+number of samples in the cohort sample \
+if integer max number of exceptions for the calculations \
+if float pvalue significance threshold for the stable pairs calculation
+
+#### onecomp dysregulation state
+-a: 0 Use RankCompv2, 1 Use RankCompv1 \
+-m: 0 Use only one sample as problem_control, use the whole problem_control matrix as problem_control \
+-f: significance threshold for the results \
+-v: verbose results (add pvalue) \
+stable_pairs result (NO verbose) \
+expression_matrix_problem_control \
+expression_matrix_problem_illness
+
+#### cellcomp dysregulation state
+TO DO !!!
 
 ## Vocabulary to be familiar with
 TO DO !!!
